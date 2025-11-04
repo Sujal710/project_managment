@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Management Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            min-height: 100vh;
+        }
+        
+        /* Auth Pages */
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .auth-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 450px;
+            width: 100%;
+            animation: slideUp 0.5s ease-out;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .auth-card h2 {
+            color: #2d3748;
+            margin-bottom: 30px;
+            text-align: center;
+            font-weight: 700;
+        }
+        .auth-logo {
+            text-align: center;
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+            animation: bounce 1s ease-in-out;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        /* Main App */
+        #app {
+            display: none;
+            background-color: #f8f9fa;
+        }
+        #app.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+        #auth-section {
+            display: none;
+        }
+        #auth-section.show {
+            display: block;
+        }
+        
+        .navbar { 
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        }
+        .navbar-brand {
+            font-weight: 600;
+            font-size: 1.3rem;
+        }
+        .nav-link {
+            font-weight: 500;
+            transition: opacity 0.2s;
+            cursor: pointer;
+        }
+        .nav-link:hover {
+            opacity: 0.8;
+        }
+        .section { 
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+        .section.active { 
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card { 
+            margin-bottom: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,.08);
+            border: none;
+            border-radius: 12px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,.12);
+        }
+        .card-title {
+            color: #2d3748;
+            font-weight: 600;
+        }
+        .priority-high { border-left: 4px solid #dc3545; }
+        .priority-medium { border-left: 4px solid #ffc107; }
+        .priority-low { border-left: 4px solid #28a745; }
+        .time-progress {
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        .time-progress-bar {
+            height: 100%;
+            transition: width 0.3s;
+        }
+        .time-progress-bar.under { background: #28a745; }
+        .time-progress-bar.on { background: #ffc107; }
+        .time-progress-bar.over { background: #dc3545; }
+        .time-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .time-badge.under { background: #d4edda; color: #155724; }
+        .time-badge.on { background: #fff3cd; color: #856404; }
+        .time-badge.over { background: #f8d7da; color: #721c24; }
+        .workload-bar { 
+            height: 24px;
+            border-radius: 6px;
+            transition: width 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        .btn-sm { 
+            font-size: 0.875rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
+        }
+        .loading { 
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+        .loading.show { 
+            display: block;
+        }
+        .loading::after {
+            content: "...";
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: "."; }
+            40% { content: ".."; }
+            60%, 100% { content: "..."; }
+        }
+        .alert { 
+            margin: 20px 0;
+            border-radius: 8px;
+            border: none;
+        }
+        .alert-info {
+            background-color: #e7f3ff;
+            color: #0c5aa6;
+        }
+        .modal-content {
+            border-radius: 12px;
+            border: none;
+        }
+        .modal-header {
+            background-color: #f8f9fa;
+            border-radius: 12px 12px 0 0;
+        }
+        .form-label {
+            font-weight: 500;
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+        }
+        .form-control, .form-select {
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            padding: 0.6rem 0.75rem;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
+        }
+        h2 {
+            color: #2d3748;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+        .user-info {
+            color: white;
+            margin-right: 15px;
+            font-weight: 500;
+        }
+        .badge {
+            font-weight: 500;
+            padding: 0.4em 0.7em;
+        }
+        .text-muted {
+            color: #718096 !important;
+        }
+        .card-text strong {
+            color: #4a5568;
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Section -->
+    <div id="auth-section" class="show">
+        <div class="auth-container">
+            <div class="auth-card">
+                <div class="auth-logo">📊</div>
+                <h2>PROJECT MANAGEMENT ASSISTANT</h2>
+                
+                <!-- Login Form -->
+                <div id="login-form">
+                    <form onsubmit="handleLogin(event)">
+                        <div class="mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" id="login-username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" id="login-password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-3">Login</button>
+                    </form>
+                    <div class="text-center">
+                        <a href="#" onclick="showRegisterForm(); return false;" style="color: #667eea; text-decoration: none;">Don't have an account? Register</a>
+                    </div>
+                </div>
+                
+                <!-- Register Form -->
+                <div id="register-form" style="display: none;">
+                    <form onsubmit="handleRegister(event)">
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="reg-fullname" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" id="reg-username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="reg-email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" id="reg-password" required minlength="6">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-3">Register</button>
+                    </form>
+                    <div class="text-center">
+                        <a href="#" onclick="showLoginForm(); return false;" style="color: #667eea; text-decoration: none;">Already have an account? Login</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App (Hidden until logged in) -->
+    <div id="app">
+        <!-- Navigation -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">📊 PROJECT MANAGEMENT ASSISTANT</a>
+                <div class="navbar-nav ms-auto">
+                    <span class="user-info" id="user-display"></span>
+                    <a class="nav-link" onclick="showSection('members')">Team Members</a>
+                    <a class="nav-link" onclick="showSection('projects')">Projects</a>
+                    <a class="nav-link" onclick="showSection('tasks')">Tasks</a>
+                    <a class="nav-link" onclick="showSection('timelogs')">Time Logs</a>
+                    <a class="nav-link" onclick="showSection('workload')">Workload</a>
+                    <a class="nav-link" onclick="logout()">Logout</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container">
+            <!-- Members Section -->
+            <div id="members" class="section active">
+                <h2>Team Members</h2>
+                <button class="btn btn-primary mb-3" onclick="showMemberModal()">+ Add Member</button>
+                <div class="loading" id="members-loading">Loading</div>
+                <div id="members-list" class="row"></div>
+            </div>
+
+            <!-- Projects Section -->
+            <div id="projects" class="section">
+                <h2>Projects</h2>
+                <button class="btn btn-primary mb-3" onclick="showProjectModal()">+ Add Project</button>
+                <div class="loading" id="projects-loading">Loading</div>
+                <div id="projects-list" class="row"></div>
+            </div>
+
+            <!-- Tasks Section -->
+            <div id="tasks" class="section">
+                <h2>Tasks</h2>
+                <button class="btn btn-primary mb-3" onclick="showTaskModal()">+ Add Task</button>
+                <div class="mb-3">
+                    <select class="form-select" id="task-filter-project" onchange="loadTasks()">
+                        <option value="">All Projects</option>
+                    </select>
+                </div>
+                <div class="loading" id="tasks-loading">Loading</div>
+                <div id="tasks-list"></div>
+            </div>
+
+            <!-- Time Logs Section -->
+            <div id="timelogs" class="section">
+                <h2>Time Logs</h2>
+                <button class="btn btn-primary mb-3" onclick="showTimeLogModal()">+ Log Time</button>
+                <div class="loading" id="timelogs-loading">Loading</div>
+                <div id="timelogs-list"></div>
+            </div>
+
+            <!-- Workload Section -->
+            <div id="workload" class="section">
+                <h2>Team Workload</h2>
+                <div class="loading" id="workload-loading">Loading</div>
+                <div id="workload-list" class="row"></div>
+            </div>
+        </div>
+
+        <!-- Member Modal -->
+        <div class="modal fade" id="memberModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Team Member</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="memberForm">
+                            <input type="hidden" id="member-id">
+                            <div class="mb-3">
+                                <label class="form-label">Name</label>
+                                <input type="text" class="form-control" id="member-name">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="member-email">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Role</label>
+                                <input type="text" class="form-control" id="member-role">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Skills (comma-separated)</label>
+                                <input type="text" class="form-control" id="member-skills" placeholder="JavaScript, Python, Design">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Experience (years)</label>
+                                <input type="number" class="form-control" id="member-experience" value="0" min="0">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Availability (%)</label>
+                                <input type="number" class="form-control" id="member-availability" value="100" min="0" max="100">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveMember()">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Modal -->
+        <div class="modal fade" id="projectModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Project</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="projectForm">
+                            <input type="hidden" id="project-id">
+                            <div class="mb-3">
+                                <label class="form-label">Project Name</label>
+                                <input type="text" class="form-control" id="project-name">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" id="project-description" rows="3"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" id="project-status">
+                                    <option value="Not Started">Not Started</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="Completed">Completed</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Deadline</label>
+                                <input type="date" class="form-control" id="project-deadline">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveProject()">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Modal -->
+        <div class="modal fade" id="taskModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Task</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="taskForm">
+                            <input type="hidden" id="task-id">
+                            <div class="mb-3">
+                                <label class="form-label">Project</label>
+                                <select class="form-select" id="task-project"></select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Task Name</label>
+                                <input type="text" class="form-control" id="task-name">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" id="task-description" rows="2"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Priority</label>
+                                <select class="form-select" id="task-priority">
+                                    <option value="Low">Low</option>
+                                    <option value="Medium" selected>Medium</option>
+                                    <option value="High">High</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Estimated Hours</label>
+                                <input type="number" class="form-control" id="task-estimated" min="0.5" step="0.5">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Assign To</label>
+                                <select class="form-select" id="task-assigned"></select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" id="task-status">
+                                    <option value="To Do">To Do</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="Done">Done</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveTask()">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Log Modal -->
+        <div class="modal fade" id="timeLogModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Log Work Time</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="timeLogForm">
+                            <input type="hidden" id="timelog-id">
+                            <div class="mb-3">
+                                <label class="form-label">Task</label>
+                                <select class="form-select" id="timelog-task"></select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Member</label>
+                                <select class="form-select" id="timelog-member"></select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Hours Worked</label>
+                                <input type="number" class="form-control" id="timelog-hours" min="0.25" step="0.25">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Date</label>
+                                <input type="date" class="form-control" id="timelog-date">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Notes</label>
+                                <textarea class="form-control" id="timelog-notes" rows="2"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveTimeLog()">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let authToken = null;
+        let currentUser = null;
+        let members = [], projects = [], tasks = [], timeLogs = [], taskTimeSummaries = {};
+
+        // Check if user is logged in on page load
+        window.onload = () => {
+            const token = localStorage.getItem('authToken');
+            const user = localStorage.getItem('currentUser');
+            if (token && user) {
+                authToken = token;
+                currentUser = JSON.parse(user);
+                showApp();
+            }
+        };
+
+        // Auth Functions
+        function showLoginForm() {
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('register-form').style.display = 'none';
+        }
+
+        function showRegisterForm() {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'block';
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    alert(error.detail || 'Login failed');
+                    return;
+                }
+
+                const data = await response.json();
+                authToken = data.access_token;
+                currentUser = data.user;
+                
+                localStorage.setItem('authToken', authToken);
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                showApp();
+            } catch (error) {
+                alert('Login error: ' + error.message);
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const userData = {
+                full_name: document.getElementById('reg-fullname').value,
+                username: document.getElementById('reg-username').value,
+                email: document.getElementById('reg-email').value,
+                password: document.getElementById('reg-password').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    alert(error.detail || 'Registration failed');
+                    return;
+                }
+
+                const data = await response.json();
+                authToken = data.access_token;
+                currentUser = data.user;
+                
+                localStorage.setItem('authToken', authToken);
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                showApp();
+            } catch (error) {
+                alert('Registration error: ' + error.message);
+            }
+        }
+
+        function showApp() {
+            document.getElementById('auth-section').classList.remove('show');
+            document.getElementById('app').classList.add('show');
+            document.getElementById('user-display').textContent = `👤 ${currentUser.full_name}`;
+            loadMembers();
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('currentUser');
+                authToken = null;
+                currentUser = null;
+                document.getElementById('app').classList.remove('show');
+                document.getElementById('auth-section').classList.add('show');
+                showLoginForm();
+            }
+        }
+
+        // Helper functions
+        function normalizeDocument(doc) {
+            if (doc && doc._id && !doc.id) doc.id = doc._id;
+            return doc;
+        }
+
+        function normalizeDocuments(docs) {
+            return docs.map(doc => normalizeDocument(doc));
+        }
+
+        function showSection(sectionName) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(sectionName).classList.add('active');
+            
+            if (sectionName === 'members') loadMembers();
+            else if (sectionName === 'projects') loadProjects();
+            else if (sectionName === 'tasks') loadTasks();
+            else if (sectionName === 'timelogs') loadTimeLogs();
+            else if (sectionName === 'workload') loadWorkload();
+        }
+
+        // API Call with Auth Token
+        async function apiCall(endpoint, method = 'GET', body = null) {
+            try {
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                };
+                if (body) options.body = JSON.stringify(body);
+                
+                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                
+                if (response.status === 401) {
+                    alert('Session expired. Please login again.');
+                    logout();
+                    return null;
+                }
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API Error: ${response.status} - ${errorText}`);
+                }
+                
+                if (method === 'DELETE') return null;
+                
+                return await response.json();
+            } catch (error) {
+                console.error('API Call Error:', error);
+                throw error;
+            }
+        }
+
+        // Time tracking
+        async function calculateTaskTimeSummary(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return null;
+
+            const taskLogs = timeLogs.filter(log => log.task_id === taskId);
+            const totalHoursSpent = taskLogs.reduce((sum, log) => sum + log.hours_spent, 0);
+            const estimatedHours = task.estimated_duration_hours;
+            const difference = estimatedHours - totalHoursSpent;
+            const percentageUsed = estimatedHours > 0 ? (totalHoursSpent / estimatedHours * 100) : 0;
+            
+            let status = 'under_budget';
+            if (percentageUsed >= 100) status = 'over_budget';
+            else if (percentageUsed >= 90) status = 'on_budget';
+
+            return {
+                task_id: taskId,
+                estimated_hours: estimatedHours,
+                total_hours_spent: totalHoursSpent,
+                difference: difference,
+                percentage_used: percentageUsed,
+                status: status
+            };
+        }
+
+        async function loadTaskTimeSummaries() {
+            taskTimeSummaries = {};
+            for (const task of tasks) {
+                const summary = await calculateTaskTimeSummary(task.id);
+                if (summary) taskTimeSummaries[task.id] = summary;
+            }
+        }
+
+        // Members
+        async function loadMembers() {
+            document.getElementById('members-loading').classList.add('show');
+            try {
+                const data = await apiCall('/members/');
+                if (data) {
+                    members = normalizeDocuments(data);
+                    renderMembers();
+                }
+            } catch (error) {
+                alert('Error loading members: ' + error.message);
+            }
+            document.getElementById('members-loading').classList.remove('show');
+        }
+
+        function renderMembers() {
+            const html = members.length ? members.map(m => `
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">${m.name}</h5>
+                            <p class="card-text">
+                                <strong>Role:</strong> ${m.role}<br>
+                                <strong>Email:</strong> ${m.email}<br>
+                                <strong>Experience:</strong> ${m.experience_years} years<br>
+                                <strong>Availability:</strong> ${m.availability_percent}%<br>
+                                <strong>Skills:</strong> ${m.skills && m.skills.length ? m.skills.join(', ') : 'None'}
+                            </p>
+                            <button class="btn btn-sm btn-primary me-2" onclick="editMember('${m.id}')">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteMember('${m.id}')">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('') : '<div class="col-12"><div class="alert alert-info">No members yet. Add your first team member!</div></div>';
+            document.getElementById('members-list').innerHTML = html;
+        }
+
+        function showMemberModal() {
+            document.getElementById('memberForm').reset();
+            document.getElementById('member-id').value = '';
+            document.querySelector('#memberModal .modal-title').textContent = 'Add Team Member';
+            new bootstrap.Modal(document.getElementById('memberModal')).show();
+        }
+
+        function editMember(id) {
+            const member = members.find(m => m.id === id);
+            if (!member) return;
+            
+            document.getElementById('member-id').value = member.id;
+            document.getElementById('member-name').value = member.name;
+            document.getElementById('member-email').value = member.email;
+            document.getElementById('member-role').value = member.role;
+            document.getElementById('member-skills').value = member.skills ? member.skills.join(', ') : '';
+            document.getElementById('member-experience').value = member.experience_years;
+            document.getElementById('member-availability').value = member.availability_percent;
+            
+            document.querySelector('#memberModal .modal-title').textContent = 'Edit Team Member';
+            new bootstrap.Modal(document.getElementById('memberModal')).show();
+        }
+
+        async function saveMember() {
+            const memberId = document.getElementById('member-id').value;
+            const data = {
+                name: document.getElementById('member-name').value,
+                email: document.getElementById('member-email').value,
+                role: document.getElementById('member-role').value,
+                skills: document.getElementById('member-skills').value.split(',').map(s => s.trim()).filter(s => s),
+                experience_years: parseInt(document.getElementById('member-experience').value),
+                availability_percent: parseInt(document.getElementById('member-availability').value)
+            };
+
+            try {
+                if (memberId) {
+                    await apiCall(`/members/${memberId}`, 'PUT', data);
+                } else {
+                    await apiCall('/members/', 'POST', data);
+                }
+                bootstrap.Modal.getInstance(document.getElementById('memberModal')).hide();
+                loadMembers();
+            } catch (error) {
+                alert('Error saving member: ' + error.message);
+            }
+        }
+
+        async function deleteMember(id) {
+            if (!confirm('Delete this member?')) return;
+            try {
+                await apiCall(`/members/${id}`, 'DELETE');
+                loadMembers();
+            } catch (error) {
+                alert('Error deleting member: ' + error.message);
+            }
+        }
+
+        // Projects
+        async function loadProjects() {
+            document.getElementById('projects-loading').classList.add('show');
+            try {
+                const data = await apiCall('/projects/');
+                if (data) {
+                    projects = normalizeDocuments(data);
+                    renderProjects();
+                    updateProjectDropdowns();
+                }
+            } catch (error) {
+                alert('Error loading projects: ' + error.message);
+            }
+            document.getElementById('projects-loading').classList.remove('show');
+        }
+
+        function renderProjects() {
+            const html = projects.length ? projects.map(p => `
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">${p.name}</h5>
+                            <span class="badge bg-${p.status === 'Completed' ? 'success' : p.status === 'In Progress' ? 'primary' : 'secondary'}">${p.status}</span>
+                            <p class="card-text mt-2">
+                                ${p.description || 'No description'}<br>
+                                <strong>Deadline:</strong> ${p.deadline ? new Date(p.deadline).toLocaleDateString() : 'Not set'}
+                            </p>
+                            <button class="btn btn-sm btn-primary me-2" onclick="editProject('${p.id}')">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteProject('${p.id}')">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('') : '<div class="col-12"><div class="alert alert-info">No projects yet. Create your first project!</div></div>';
+            document.getElementById('projects-list').innerHTML = html;
+        }
+
+        function showProjectModal() {
+            document.getElementById('projectForm').reset();
+            document.getElementById('project-id').value = '';
+            document.querySelector('#projectModal .modal-title').textContent = 'Add Project';
+            new bootstrap.Modal(document.getElementById('projectModal')).show();
+        }
+
+        function editProject(id) {
+            const project = projects.find(p => p.id === id);
+            if (!project) return;
+            
+            document.getElementById('project-id').value = project.id;
+            document.getElementById('project-name').value = project.name;
+            document.getElementById('project-description').value = project.description || '';
+            document.getElementById('project-status').value = project.status;
+            if (project.deadline) {
+                const date = new Date(project.deadline);
+                document.getElementById('project-deadline').value = date.toISOString().split('T')[0];
+            }
+            
+            document.querySelector('#projectModal .modal-title').textContent = 'Edit Project';
+            new bootstrap.Modal(document.getElementById('projectModal')).show();
+        }
+
+        async function saveProject() {
+            const projectId = document.getElementById('project-id').value;
+            const deadlineValue = document.getElementById('project-deadline').value;
+            const data = {
+                name: document.getElementById('project-name').value,
+                description: document.getElementById('project-description').value,
+                status: document.getElementById('project-status').value,
+                deadline: deadlineValue ? new Date(deadlineValue).toISOString() : null
+            };
+
+            try {
+                if (projectId) {
+                    await apiCall(`/projects/${projectId}`, 'PUT', data);
+                } else {
+                    await apiCall('/projects/', 'POST', data);
+                }
+                bootstrap.Modal.getInstance(document.getElementById('projectModal')).hide();
+                loadProjects();
+            } catch (error) {
+                alert('Error saving project: ' + error.message);
+            }
+        }
+
+        async function deleteProject(id) {
+            if (!confirm('Delete this project?')) return;
+            try {
+                await apiCall(`/projects/${id}`, 'DELETE');
+                loadProjects();
+            } catch (error) {
+                alert('Error deleting project: ' + error.message);
+            }
+        }
+
+        function updateProjectDropdowns() {
+            const options = '<option value="">Select Project</option>' + 
+                (projects && projects.length ? projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('') : '');
+            document.getElementById('task-project').innerHTML = options;
+            
+            const filterOptions = '<option value="">All Projects</option>' + 
+                (projects && projects.length ? projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('') : '');
+            document.getElementById('task-filter-project').innerHTML = filterOptions;
+        }
+
+        // Tasks
+        async function loadTasks() {
+            document.getElementById('tasks-loading').classList.add('show');
+            try {
+                const data = await apiCall('/tasks/');
+                if (data) {
+                    tasks = normalizeDocuments(data);
+                    if (!projects || projects.length === 0) await loadProjects();
+                    if (!members || members.length === 0) await loadMembers();
+                    if (!timeLogs || timeLogs.length === 0) {
+                        const logsData = await apiCall('/time_logs/');
+                        if (logsData) timeLogs = normalizeDocuments(logsData);
+                    }
+                    await loadTaskTimeSummaries();
+                    renderTasks();
+                    updateTaskDropdowns();
+                }
+            } catch (error) {
+                alert('Error loading tasks: ' + error.message);
+            }
+            document.getElementById('tasks-loading').classList.remove('show');
+        }
+
+        function renderTasks() {
+            const filterProject = document.getElementById('task-filter-project').value;
+            const filtered = filterProject ? tasks.filter(t => t.project_id === filterProject) : tasks;
+
+            const html = filtered.length ? filtered.map(t => {
+                const project = projects.find(p => p.id === t.project_id);
+                const assignedIds = t.assigned_to_ids || t.assigned_to || [];
+                const assignedMembers = assignedIds.map(id => {
+                    const m = members.find(mem => mem.id === id);
+                    return m ? m.name : 'Unknown';
+                }).join(', ');
+
+                const summary = taskTimeSummaries[t.id];
+                let timeTrackingHtml = '';
+                
+                if (summary) {
+                    const percentage = Math.min(summary.percentage_used, 100);
+                    const statusClass = summary.status === 'over_budget' ? 'over' : 
+                                      summary.status === 'on_budget' ? 'on' : 'under';
+                    
+                    timeTrackingHtml = `
+                        <div class="mt-2 mb-2">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small><strong>Time Tracking:</strong> ${summary.total_hours_spent.toFixed(1)}h / ${summary.estimated_hours}h</small>
+                                <span class="time-badge ${statusClass}">${summary.percentage_used.toFixed(0)}%</span>
+                            </div>
+                            <div class="time-progress">
+                                <div class="time-progress-bar ${statusClass}" style="width: ${percentage}%"></div>
+                            </div>
+                            ${summary.status === 'over_budget' ? 
+                                '<small class="text-danger">⚠️ Over budget by ' + Math.abs(summary.difference).toFixed(1) + 'h</small>' : ''}
+                            ${summary.status === 'under_budget' ? 
+                                '<small class="text-success">✓ ' + Math.abs(summary.difference).toFixed(1) + 'h remaining</small>' : ''}
+                            ${summary.status === 'on_budget' ? 
+                                '<small class="text-warning">⚡ Near budget limit</small>' : ''}
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="card mb-2 priority-${t.priority.toLowerCase()}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="mb-1">${t.name}</h6>
+                                    <small class="text-muted">Project: ${project ? project.name : 'Unknown'}</small>
+                                </div>
+                                <div>
+                                    <span class="badge bg-${t.priority === 'High' ? 'danger' : t.priority === 'Medium' ? 'warning' : 'success'}">${t.priority}</span>
+                                    <span class="badge bg-${t.status === 'Done' ? 'success' : t.status === 'In Progress' ? 'primary' : 'secondary'}">${t.status}</span>
+                                </div>
+                            </div>
+                            <p class="mb-2 mt-2">${t.description || ''}</p>
+                            ${timeTrackingHtml}
+                            <small>
+                                <strong>Estimated:</strong> ${t.estimated_duration_hours}h | 
+                                <strong>Assigned:</strong> ${assignedMembers || 'Unassigned'}
+                            </small>
+                            <div class="mt-2">
+                                <button class="btn btn-sm btn-primary me-2" onclick="editTask('${t.id}')">Edit</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteTask('${t.id}')">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('') : '<div class="alert alert-info">No tasks found. Add your first task!</div>';
+            document.getElementById('tasks-list').innerHTML = html;
+        }
+
+        async function showTaskModal() {
+            // Always load fresh data
+            if (!projects || projects.length === 0) {
+                await loadProjects();
+            }
+            if (!projects || projects.length === 0) {
+                alert('Please create a project first!');
+                showSection('projects');
+                return;
+            }
+            
+            if (!members || members.length === 0) {
+                await loadMembers();
+            }
+            
+            document.getElementById('taskForm').reset();
+            document.getElementById('task-id').value = '';
+            
+            // Update dropdowns with current data
+            updateProjectDropdowns();
+            
+            const memberOptions = '<option value="">Not assigned</option>' + 
+                (members && members.length ? members.map(m => `<option value="${m.id}">${m.name}</option>`).join('') : '');
+            document.getElementById('task-assigned').innerHTML = memberOptions;
+            
+            document.querySelector('#taskModal .modal-title').textContent = 'Add Task';
+            new bootstrap.Modal(document.getElementById('taskModal')).show();
+        }
+
+        function editTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+            
+            document.getElementById('task-id').value = task.id;
+            document.getElementById('task-project').value = task.project_id;
+            document.getElementById('task-name').value = task.name;
+            document.getElementById('task-description').value = task.description || '';
+            document.getElementById('task-priority').value = task.priority;
+            document.getElementById('task-estimated').value = task.estimated_duration_hours;
+            document.getElementById('task-status').value = task.status;
+            
+            // Update dropdowns before setting values
+            updateProjectDropdowns();
+            
+            const memberOptions = '<option value="">Not assigned</option>' + 
+                (members && members.length ? members.map(m => `<option value="${m.id}">${m.name}</option>`).join('') : '');
+            document.getElementById('task-assigned').innerHTML = memberOptions;
+            
+            const assignedIds = task.assigned_to_ids || task.assigned_to || [];
+            if (assignedIds && assignedIds.length > 0) {
+                document.getElementById('task-assigned').value = assignedIds[0];
+            }
+            
+            document.querySelector('#taskModal .modal-title').textContent = 'Edit Task';
+            new bootstrap.Modal(document.getElementById('taskModal')).show();
+        }
+
+        async function saveTask() {
+            const taskId = document.getElementById('task-id').value;
+            const assignedTo = document.getElementById('task-assigned').value;
+            const data = {
+                project_id: document.getElementById('task-project').value,
+                name: document.getElementById('task-name').value,
+                description: document.getElementById('task-description').value,
+                priority: document.getElementById('task-priority').value,
+                estimated_duration_hours: parseFloat(document.getElementById('task-estimated').value),
+                status: document.getElementById('task-status').value,
+                assigned_to: assignedTo ? [assignedTo] : []
+            };
+
+            try {
+                if (taskId) {
+                    await apiCall(`/tasks/${taskId}`, 'PUT', data);
+                } else {
+                    await apiCall('/tasks/', 'POST', data);
+                }
+                bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
+                loadTasks();
+            } catch (error) {
+                alert('Error saving task: ' + error.message);
+            }
+        }
+
+        async function deleteTask(id) {
+            if (!confirm('Delete this task?')) return;
+            try {
+                await apiCall(`/tasks/${id}`, 'DELETE');
+                loadTasks();
+            } catch (error) {
+                alert('Error deleting task: ' + error.message);
+            }
+        }
+
+        function updateTaskDropdowns() {
+            const options = '<option value="">Select Task</option>' + 
+                (tasks && tasks.length ? tasks.map(t => `<option value="${t.id}">${t.name}</option>`).join('') : '');
+            document.getElementById('timelog-task').innerHTML = options;
+        }
+
+        // Time Logs
+        async function loadTimeLogs() {
+            document.getElementById('timelogs-loading').classList.add('show');
+            try {
+                const data = await apiCall('/time_logs/');
+                if (data) {
+                    timeLogs = normalizeDocuments(data);
+                    if (!tasks || tasks.length === 0) await loadTasks();
+                    if (!members || members.length === 0) await loadMembers();
+                    renderTimeLogs();
+                }
+            } catch (error) {
+                alert('Error loading time logs: ' + error.message);
+            }
+            document.getElementById('timelogs-loading').classList.remove('show');
+        }
+
+        function renderTimeLogs() {
+            const html = timeLogs.length ? timeLogs.map(log => {
+                const task = tasks.find(t => t.id === log.task_id);
+                const member = members.find(m => m.id === log.member_id);
+                return `
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <strong>${member ? member.name : 'Unknown'}</strong> logged 
+                            <strong>${log.hours_spent}h</strong> on 
+                            <strong>${task ? task.name : 'Unknown Task'}</strong>
+                            <br>
+                            <small class="text-muted">${new Date(log.date_logged).toLocaleDateString()}</small>
+                            ${log.notes ? `<br><small>${log.notes}</small>` : ''}
+                            <div class="float-end">
+                                <button class="btn btn-sm btn-primary me-2" onclick="editTimeLog('${log.id}')">Edit</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteTimeLog('${log.id}')">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('') : '<div class="alert alert-info">No time logs yet. Start tracking your work!</div>';
+            document.getElementById('timelogs-list').innerHTML = html;
+        }
+
+        async function showTimeLogModal() {
+            // Always load fresh data
+            if (!tasks || tasks.length === 0) {
+                await loadTasks();
+            }
+            if (!tasks || tasks.length === 0) {
+                alert('Please create a task first!');
+                showSection('tasks');
+                return;
+            }
+            
+            if (!members || members.length === 0) {
+                await loadMembers();
+            }
+            if (!members || members.length === 0) {
+                alert('Please create a member first!');
+                showSection('members');
+                return;
+            }
+            
+            document.getElementById('timeLogForm').reset();
+            document.getElementById('timelog-id').value = '';
+            document.getElementById('timelog-date').valueAsDate = new Date();
+            
+            // Clear placeholder
+            document.getElementById('timelog-hours').placeholder = '';
+            
+            // Update dropdowns with current data
+            const taskOptions = '<option value="">Select Task</option>' + 
+                tasks.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+            document.getElementById('timelog-task').innerHTML = taskOptions;
+            
+            const memberOptions = '<option value="">Select Member</option>' + 
+                members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+            document.getElementById('timelog-member').innerHTML = memberOptions;
+            
+            document.querySelector('#timeLogModal .modal-title').textContent = 'Log Work Time';
+            new bootstrap.Modal(document.getElementById('timeLogModal')).show();
+        }
+
+        function editTimeLog(id) {
+            const log = timeLogs.find(l => l.id === id);
+            if (!log) return;
+            
+            document.getElementById('timelog-id').value = log.id;
+            
+            // Update dropdowns first
+            updateTaskDropdowns();
+            
+            const memberOptions = '<option value="">Select Member</option>' + 
+                members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+            document.getElementById('timelog-member').innerHTML = memberOptions;
+            
+            // Then set the values
+            document.getElementById('timelog-task').value = log.task_id;
+            document.getElementById('timelog-member').value = log.member_id;
+            
+            // Clear hours field for adding more hours (don't show existing hours)
+            document.getElementById('timelog-hours').value = '';
+            document.getElementById('timelog-hours').placeholder = `Current: ${log.hours_spent}h - Enter hours to add`;
+            
+            const date = new Date(log.date_logged);
+            document.getElementById('timelog-date').value = date.toISOString().split('T')[0];
+            document.getElementById('timelog-notes').value = log.notes || '';
+            
+            document.querySelector('#timeLogModal .modal-title').textContent = 'Add More Hours to Time Log';
+            new bootstrap.Modal(document.getElementById('timeLogModal')).show();
+        }
+
+        async function saveTimeLog() {
+            const logId = document.getElementById('timelog-id').value;
+            const taskId = document.getElementById('timelog-task').value;
+            const memberId = document.getElementById('timelog-member').value;
+            const dateValue = document.getElementById('timelog-date').value;
+            const newHours = parseFloat(document.getElementById('timelog-hours').value);
+            
+            if (!taskId || !memberId) {
+                alert('Please select both task and member');
+                return;
+            }
+            
+            if (!newHours || newHours <= 0) {
+                alert('Please enter valid hours');
+                return;
+            }
+            
+            let finalHours = newHours;
+            
+            // If editing, add the new hours to existing hours
+            if (logId) {
+                const existingLog = timeLogs.find(l => l.id === logId);
+                if (existingLog) {
+                    finalHours = existingLog.hours_spent + newHours;
+                    if (confirm(`You're adding ${newHours}h to the existing ${existingLog.hours_spent}h. Total will be ${finalHours}h. Continue?`)) {
+                        // User confirmed, proceed
+                    } else {
+                        return; // User cancelled
+                    }
+                }
+            }
+            
+            const data = {
+                task_id: taskId,
+                member_id: memberId,
+                hours_spent: finalHours,
+                date_logged: dateValue ? new Date(dateValue).toISOString() : new Date().toISOString(),
+                notes: document.getElementById('timelog-notes').value || null
+            };
+
+            try {
+                if (logId) {
+                    await apiCall(`/time_logs/${logId}`, 'PUT', data);
+                } else {
+                    await apiCall(`/time_logs/`, 'POST', data);
+                }
+                bootstrap.Modal.getInstance(document.getElementById('timeLogModal')).hide();
+                
+                // Reload time logs first to get fresh data
+                const logsData = await apiCall('/time_logs/');
+                if (logsData) {
+                    timeLogs = normalizeDocuments(logsData);
+                }
+                
+                // Then reload task summaries with updated time logs
+                await loadTaskTimeSummaries();
+                
+                // Re-render the current view
+                const currentSection = document.querySelector('.section.active').id;
+                if (currentSection === 'timelogs') {
+                    renderTimeLogs();
+                } else if (currentSection === 'tasks') {
+                    renderTasks();
+                }
+            } catch (error) {
+                alert('Error saving time log: ' + error.message);
+            }
+        }
+
+        async function deleteTimeLog(id) {
+            if (!confirm('Delete this time log?')) return;
+            try {
+                await apiCall(`/time_logs/${id}`, 'DELETE');
+                
+                // Reload time logs first to get fresh data
+                const logsData = await apiCall('/time_logs/');
+                if (logsData) {
+                    timeLogs = normalizeDocuments(logsData);
+                }
+                
+                // Then reload task summaries with updated time logs
+                await loadTaskTimeSummaries();
+                
+                // Re-render the current view
+                const currentSection = document.querySelector('.section.active').id;
+                if (currentSection === 'timelogs') {
+                    renderTimeLogs();
+                } else if (currentSection === 'tasks') {
+                    renderTasks();
+                }
+            } catch (error) {
+                alert('Error deleting time log: ' + error.message);
+            }
+        }
+
+        // Workload
+        async function loadWorkload() {
+            document.getElementById('workload-loading').classList.add('show');
+            try {
+                await loadMembers();
+                await loadTasks();
+                
+                const workloadData = await Promise.all(
+                    members.map(async m => {
+                        try {
+                            return await apiCall(`/assignment/workload/${m.id}`);
+                        } catch (error) {
+                            console.error('Error loading workload for member:', m.name, error);
+                            return null;
+                        }
+                    })
+                );
+                
+                renderWorkload(workloadData.filter(w => w !== null));
+            } catch (error) {
+                console.error('Workload loading error:', error);
+                alert('Error loading workload: ' + error.message);
+            }
+            document.getElementById('workload-loading').classList.remove('show');
+        }
+
+        function renderWorkload(workloadData) {
+            const html = workloadData.length ? workloadData.map(w => {
+                const utilization = w.availability_percent > 0 ? 
+                    (w.total_estimated_hours_assigned / (w.availability_percent / 100 * 40) * 100) : 0;
+                const color = utilization < 50 ? 'success' : utilization < 80 ? 'warning' : 'danger';
+                
+                return `
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">${w.member_name}</h5>
+                                <p>
+                                    <strong>Active Tasks:</strong> ${w.active_tasks_count}<br>
+                                    <strong>Total Hours:</strong> ${w.total_estimated_hours_assigned.toFixed(1)}h<br>
+                                    <strong>Availability:</strong> ${w.availability_percent}%
+                                </p>
+                                <div class="workload-bar bg-${color}" style="width: ${Math.min(utilization, 100)}%"></div>
+                                <small class="text-muted">${utilization.toFixed(0)}% utilized</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('') : '<div class="col-12"><div class="alert alert-info">No workload data available. Add some team members and tasks!</div></div>';
+            document.getElementById('workload-list').innerHTML = html;
+        }
+    </script>
+</body>
+</html>
